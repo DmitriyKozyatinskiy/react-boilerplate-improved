@@ -12,11 +12,11 @@ import 'babel-polyfill';
 import React from 'react';
 import ReactDOM from 'react-dom';
 import { Provider } from 'react-redux';
-import { applyRouterMiddleware, Router, browserHistory } from 'react-router';
-import { syncHistoryWithStore } from 'react-router-redux';
-import FontFaceObserver from 'fontfaceobserver';
-import { useScroll } from 'react-router-scroll';
+import { createBrowserHistory } from 'history';
+import { applyRouterMiddleware, Route } from 'react-router';
+import { ConnectedRouter, syncHistoryWithStore } from 'react-router-redux';
 import 'sanitize.css/sanitize.css';
+import 'semantic-ui-css/semantic.min.css';
 
 // Import root app
 import App from 'containers/App';
@@ -28,11 +28,11 @@ import { makeSelectLocationState } from 'containers/App/selectors';
 import LanguageProvider from 'containers/LanguageProvider';
 
 // Load the favicon, the manifest.json file and the .htaccess file
-/* eslint-disable import/no-webpack-loader-syntax */
+/* eslint-disable import/no-unresolved, import/extensions */
 import '!file-loader?name=[name].[ext]!./favicon.ico';
 import '!file-loader?name=[name].[ext]!./manifest.json';
-import 'file-loader?name=[name].[ext]!./.htaccess'; // eslint-disable-line import/extensions
-/* eslint-enable import/no-webpack-loader-syntax */
+import 'file-loader?name=[name].[ext]!./.htaccess';
+/* eslint-enable import/no-unresolved, import/extensions */
 
 import configureStore from './store';
 
@@ -42,33 +42,23 @@ import { translationMessages } from './i18n';
 // Import CSS reset and Global Styles
 import './global-styles';
 
-// Import routes
+// Import root routes
 import createRoutes from './routes';
-
-// Observe loading of Open Sans (to remove open sans, remove the <link> tag in
-// the index.html file and this observer)
-const openSansObserver = new FontFaceObserver('Open Sans', {});
-
-// When Open Sans is loaded, add a font-family using Open Sans to the body
-openSansObserver.load().then(() => {
-  document.body.classList.add('fontLoaded');
-}, () => {
-  document.body.classList.remove('fontLoaded');
-});
 
 // Create redux store with history
 // this uses the singleton browserHistory provided by react-router
 // Optionally, this could be changed to leverage a created history
 // e.g. `const browserHistory = useRouterHistory(createBrowserHistory)();`
+const browserHistory = createBrowserHistory();
 const initialState = {};
 const store = configureStore(initialState, browserHistory);
 
 // Sync history and store, as the react-router-redux reducer
 // is under the non-default key ("routing"), selectLocationState
 // must be provided for resolving how to retrieve the "route" in the state
-const history = syncHistoryWithStore(browserHistory, store, {
-  selectLocationState: makeSelectLocationState(),
-});
+// const history = syncHistoryWithStore(browserHistory, store, {
+//   selectLocationState: makeSelectLocationState(),
+// });
 
 // Set up the router, wrapping all Routes in the App component
 const rootRoute = {
@@ -76,20 +66,23 @@ const rootRoute = {
   childRoutes: createRoutes(store),
 };
 
+// rootRoute.childRoutes().then(response => console.log('resp: ', response));
+console.log('ROUTES: ', rootRoute);
+
+// import AppComponent from 'containers/App';
+
 const render = (messages) => {
   ReactDOM.render(
     <Provider store={store}>
-      <LanguageProvider messages={messages}>
-        <Router
-          history={history}
-          routes={rootRoute}
-          render={
-            // Scroll to top when going to a new page, imitating default browser
-            // behaviour
-            applyRouterMiddleware(useScroll())
-          }
-        />
-      </LanguageProvider>
+        <LanguageProvider messages={messages}>
+          <ConnectedRouter history={browserHistory}>
+            <div>
+              <Route path="/" component={App}/>
+              {/*<Route path="/about" component={About}/>*/}
+              {/*<Route path="/topics" component={Topics}/>*/}
+            </div>
+          </ConnectedRouter>
+        </LanguageProvider>
     </Provider>,
     document.getElementById('app')
   );
@@ -111,7 +104,6 @@ if (!window.Intl) {
   }))
     .then(() => Promise.all([
       import('intl/locale-data/jsonp/en.js'),
-      import('intl/locale-data/jsonp/de.js'),
     ]))
     .then(() => render(translationMessages))
     .catch((err) => {

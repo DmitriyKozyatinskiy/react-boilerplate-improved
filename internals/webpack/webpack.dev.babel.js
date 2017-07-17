@@ -92,6 +92,7 @@ function dependencyHandlers() {
    */
   if (!dllPlugin.dlls) {
     const manifestPath = path.resolve(dllPath, 'reactBoilerplateDeps.json');
+    logger.error('Manifest:  ' + manifestPath);
 
     if (!fs.existsSync(manifestPath)) {
       logger.error('The DLL manifest is missing. Please run `npm run build:dll`');
